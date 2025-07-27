@@ -1,10 +1,9 @@
-import Order from "../models/Order.js";
+import mongoose from "mongoose";
+import Order from "../models/Order.js"; // make sure this import exists and is correct
 
 export const createOrder = async (req, res) => {
   try {
     const { items, deliveryTime, instructions, address, totalAmount } = req.body;
-
-    console.log("Incoming order body:", req.body);
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
@@ -18,10 +17,12 @@ export const createOrder = async (req, res) => {
           Number.isInteger(i.quantity) &&
           i.quantity > 0 &&
           typeof i.price === "number" &&
-          i.price >= 0
+          i.price >= 0 &&
+          i.supplierId &&
+          typeof i.supplierId === "string"
       )
     ) {
-      return res.status(400).json({ message: "Invalid item in cart" });
+      return res.status(400).json({ message: "Invalid item in cart. Please check supplierId and fields." });
     }
 
     if (!deliveryTime || typeof deliveryTime !== "string") {
@@ -37,7 +38,10 @@ export const createOrder = async (req, res) => {
     }
 
     const order = new Order({
-      items,
+      items: items.map(item => ({
+        ...item,
+        supplierId: new mongoose.Types.ObjectId(item.supplierId),
+      })),
       deliveryTime,
       instructions: instructions || "None",
       address,
@@ -50,5 +54,23 @@ export const createOrder = async (req, res) => {
   } catch (err) {
     console.error("❌ Error saving order:", err);
     return res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+// ✅ Add this function and export it too
+export const getOrdersBySupplier = async (req, res) => {
+  try {
+    const { supplierId } = req.params;
+
+    if (!supplierId) {
+      return res.status(400).json({ message: "Supplier ID is required" });
+    }
+
+    const orders = await Order.find({ "items.supplierId": supplierId });
+
+    return res.status(200).json(orders);
+  } catch (err) {
+    console.error("❌ Error fetching orders:", err);
+    return res.status(500).json({ message: "Failed to fetch orders", error: err.message });
   }
 };

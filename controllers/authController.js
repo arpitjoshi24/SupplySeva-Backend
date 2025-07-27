@@ -35,7 +35,7 @@ exports.signup = async (req, res) => {
     res.status(201).json({ message: 'Signup successful!' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Signup failed' });
+    res.status(500).json({ message: 'Signup failed', error: error.message });
   }
 };
 
@@ -54,24 +54,27 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Incorrect password' });
     }
 
-    // Optional: generate JWT
+    // Generate JWT
     const token = jwt.sign(
       { id: user._id, role: user.role },
-      'your_jwt_secret', // Store securely (env variable)
+      'your_jwt_secret', // ⚠️ Replace with process.env.JWT_SECRET in production
       { expiresIn: '1d' }
     );
 
+    // ✅ Send _id instead of id to frontend
     res.status(200).json({
       message: 'Login successful',
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         role: user.role,
+        businessName: user.businessName,
+        phone: user.phone,
       },
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Login failed' });
+    res.status(500).json({ message: 'Login failed', error: error.message });
   }
 };
