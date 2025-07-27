@@ -2,29 +2,48 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
-import ordersRoutes from './routes/orders.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import ordersRouter from './routes/orders.js';
 
 dotenv.config();
 connectDB();
 
 const app = express();
+
+// Convert ESM file URL to __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json()); // ✅ Parse JSON bodies
 
-// Serve static files (e.g. images)
+// Serve uploaded images or files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
-app.use('/api/orders', ordersRoutes);
+app.use('/api/orders', ordersRouter);
 
+// Default route for testing
+app.get('/', (req, res) => {
+  res.send('🚀 API is running...');
+});
+
+// Error handling (optional enhancement)
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err.stack);
+  res.status(500).json({ message: 'Internal Server Error', error: err.message });
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+app.listen(PORT, () =>
+  console.log(`✅ Server running at http://localhost:${PORT}`)
+);
